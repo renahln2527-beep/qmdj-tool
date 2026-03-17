@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>奇门遁甲排盘 · 神奇之门</title>
+<style>
+:root {
+  --bg:     #0e0e12;
+  --paper:  #16161e;
+  --paper2: #1e1e28;
+  --border: #2e2e3e;
+  --gold:   #c9a84c;
+  --jade:   #5eb89b;
+  --red:    #c94c4c;
+  --blue:   #4c7fc9;
+  --dim:    #666688;
+  --text:   #d0d0e8;
+  --white:  #eeeeff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Microsoft YaHei', SimHei, serif;
+  min-height: 100vh;
+}
+header {
+  text-align: center;
+  padding: 1.2rem 1rem .8rem;
+  border-bottom: 1px solid var(--border);
+}
+header h1 {
+  font-size: 1.5rem;
+  color: var(--gold);
+  letter-spacing: .3em;
+  font-weight: 400;
+}
+header p {
+  font-size: .72rem;
+  color: var(--dim);
+  margin-top: .3rem;
+  letter-spacing: .12em;
+}
+
+/* ── 输入区 ── */
+.input-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 1rem;
+  background: var(--paper);
+  border-bottom: 1px solid var(--border);
+}
+.field { display: flex; flex-direction: column; gap: .25rem; }
+.field label { font-size: .65rem; color: var(--dim); letter-spacing: .08em; }
+.field input {
+  width: 68px;
+  padding: .38rem .5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: .9rem;
+  outline: none;
+  text-align: center;
+}
+.field input:focus { border-color: var(--gold); }
+.btn-row { display: flex; gap: .5rem; align-items: flex-end; }
+.btn {
+  padding: .42rem 1.2rem;
+  background: var(--gold);
+  color: #0e0e12;
+  border: none;
+  cursor: pointer;
+  font-size: .9rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  transition: background .15s;
+}
+.btn:hover:not(:disabled) { background: #e0bc60; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.dim {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--dim);
+}
+.btn.dim:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+
+/* 加载状态 */
+.status-bar {
+  text-align: center;
+  padding: .45rem;
+  font-size: .75rem;
+  color: var(--dim);
+  background: var(--paper2);
+  border-bottom: 1px solid var(--border);
+  transition: all .3s;
+}
+.status-bar.ready { color: var(--jade); }
+.status-bar.busy  { color: var(--gold); }
+.status-bar.error { color: var(--red); }
+
+/* ── 基本信息条 ── */
+.info-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem 1.5rem;
+  justify-content: center;
+  padding: .7rem 1rem;
+  background: var(--paper2);
+  border-bottom: 1px solid var(--border);
+  font-size: .8rem;
+}
+.info-item { display: flex; align-items: center; gap: .4rem; }
+.info-item .lbl { color: var(--dim); font-size: .7rem; }
+.info-item .val { color: var(--white); font-weight: 600; letter-spacing: .04em; }
+.info-item .val.gold { color: var(--gold); }
+.info-item .val.jade { color: var(--jade); }
+.info-item .val.red  { color: var(--red); }
+
+/* ── 主体 ── */
+.main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.2rem;
+  gap: 1rem;
+}
+
+/* ── 值符值使 ── */
+.zhifu-bar {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.zhifu-card {
+  background: var(--paper2);
+  border: 1px solid var(--gold);
+  padding: .5rem 1.4rem;
+  text-align: center;
+  flex: 1;
+  min-width: 130px;
+}
+.zhifu-card .sub { font-size: .62rem; color: var(--dim); margin-bottom: .2rem; letter-spacing: .1em; }
+.zhifu-card .val { font-size: 1.1rem; font-weight: 700; color: var(--gold); }
+
+/* ── 九宫格 ── */
+.palace-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  background: var(--border);
+  border: 3px solid var(--gold);
+  width: 100%;
+  max-width: 720px;
+}
+.cell {
+  background: var(--paper);
+  padding: .55rem .6rem .45rem;
+  min-height: 130px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.cell.center {
+  background: var(--paper2);
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* 天盘区 */
+.cell-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: .3rem;
+  margin-bottom: .2rem;
+}
+.shen { font-size: .72rem; font-weight: 600; white-space: nowrap; }
+.star-block { text-align: right; }
+.star-name { font-size: .82rem; font-weight: 700; }
+.tian-gan  { font-size: .7rem; color: var(--gold); text-align: right; }
+
+/* 门 */
+.door {
+  font-size: .88rem;
+  font-weight: 700;
+  text-align: center;
+  padding: .08rem 0;
+  letter-spacing: .1em;
+}
+
+/* 分隔线 */
+.cell-divider {
+  height: 1px;
+  background: var(--border);
+  margin: .28rem 0 .22rem;
+}
+
+/* 地盘区 */
+.cell-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: auto;
+}
+.di-gan { font-size: 1.05rem; font-weight: 700; color: var(--white); }
+.gong-label {
+  font-size: .58rem;
+  color: var(--dim);
+  text-align: right;
+  line-height: 1.5;
+}
+.gong-label .num { font-size: .82rem; color: var(--gold); display: block; }
+
+/* 中宫 */
+.center-title { font-size: .72rem; color: var(--dim); letter-spacing: .2em; margin-bottom: .4rem; }
+.center-di    { font-size: 1.4rem; font-weight: 700; color: var(--gold); }
+.center-dir   { font-size: .6rem; color: var(--dim); margin-top: .3rem; }
+
+/* ── 颜色 ── */
+/* 九星 */
+.star-蓬, .star-芮 { color: #c94c4c; }
+.star-冲, .star-辅, .star-任 { color: var(--jade); }
+.star-禽, .star-心 { color: var(--gold); }
+.star-柱 { color: #888; }
+.star-英 { color: #c07030; }
+
+/* 八门 */
+.door-休 { color: #4c9de8; }
+.door-生 { color: var(--jade); }
+.door-伤 { color: var(--red); }
+.door-杜 { color: #5a8a5a; }
+.door-景 { color: #c07030; }
+.door-死 { color: #666; }
+.door-惊 { color: #b87040; }
+.door-开 { color: var(--gold); }
+
+/* 八神 */
+.shen-值符 { color: var(--gold); }
+.shen-腾蛇 { color: var(--red); }
+.shen-太阴 { color: #a0a0c8; }
+.shen-六合 { color: var(--jade); }
+.shen-白虎 { color: #c0c0d0; }
+.shen-玄武 { color: #7070cc; }
+.shen-九地 { color: #b08040; }
+.shen-九天 { color: #5090d8; }
+
+/* ── 图例 ── */
+.legend {
+  width: 100%;
+  max-width: 720px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: .5rem;
+}
+.legend-card {
+  background: var(--paper2);
+  border: 1px solid var(--border);
+  padding: .6rem .8rem;
+}
+.legend-card h4 {
+  font-size: .62rem;
+  color: var(--gold);
+  letter-spacing: .15em;
+  margin-bottom: .4rem;
+  padding-bottom: .2rem;
+  border-bottom: 1px solid var(--border);
+}
+.leg-row {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+  font-size: .77rem;
+  line-height: 1.9;
+}
+
+/* 验证预设 */
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+  justify-content: center;
+  padding: .5rem 1rem;
+  background: var(--paper);
+  border-bottom: 1px solid var(--border);
+}
+.presets span { font-size: .65rem; color: var(--dim); align-self: center; }
+.pre {
+  padding: .25rem .7rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--dim);
+  cursor: pointer;
+  font-size: .72rem;
+  transition: all .15s;
+}
+.pre:hover { border-color: var(--gold); color: var(--gold); }
+
+/* 结果区隐藏/显示 */
+.result-section { display: none; }
+.result-section.show { display: contents; }
+
+@media(max-width:500px){
+  .cell { min-height: 100px; padding: .4rem .35rem; }
+  .door { font-size: .78rem; }
+  .star-name { font-size: .72rem; }
+  .di-gan { font-size: .9rem; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>奇门遁甲排盘</h1>
+  <p>神奇之门 · 张志春法 · 拆补定局 · 飞宫布盘</p>
+</header>
+
+<div class="input-wrap">
+  <div class="field"><label>年</label><input type="number" id="Y"  value="1995" min="1900" max="2100"></div>
+  <div class="field"><label>月</label><input type="number" id="M"  value="6"    min="1"    max="12"></div>
+  <div class="field"><label>日</label><input type="number" id="D"  value="11"   min="1"    max="31"></div>
+  <div class="field"><label>时（0-23）</label><input type="number" id="H"  value="9"    min="0"    max="23"></div>
+  <div class="field"><label>分</label><input type="number" id="MI" value="30"   min="0"    max="59"></div>
+  <div class="btn-row">
+    <button class="btn" id="btnPai" onclick="doQuery()" disabled>排 盘</button>
+    <button class="btn dim" id="btnNow" onclick="setNow()" disabled>当前时间</button>
+  </div>
+</div>
+
+<div class="presets">
+  <span>验证案例：</span>
+  <button class="pre" onclick="sd(1995,6,11,9,30)">书中例一 1995-6-11 9:30</button>
+  <button class="pre" onclick="sd(2024,2,4,16,27)">2024立春后 16:27</button>
+  <button class="pre" onclick="sd(2024,2,4,16,26)">2024立春前 16:26</button>
+  <button class="pre" onclick="sd(2024,12,21,17,21)">2024冬至</button>
+  <button class="pre" onclick="sd(2025,3,5,16,7)">2025惊蛰</button>
+</div>
+
+<div class="status-bar" id="statusBar">正在后台加载万年历库，请稍候…</div>
+
+<!-- 基本信息条 -->
+<div class="info-bar" id="infoBar" style="display:none">
+  <div class="info-item"><span class="lbl">年柱</span><span class="val gold" id="iYear"></span></div>
+  <div class="info-item"><span class="lbl">月柱</span><span class="val gold" id="iMonth"></span></div>
+  <div class="info-item"><span class="lbl">日柱</span><span class="val gold" id="iDay"></span></div>
+  <div class="info-item"><span class="lbl">时柱</span><span class="val gold" id="iHour"></span></div>
+  <div class="info-item"><span class="lbl">节气</span><span class="val jade" id="iJq"></span></div>
+  <div class="info-item"><span class="lbl">局</span><span class="val red" id="iJu"></span></div>
+  <div class="info-item"><span class="lbl">元</span><span class="val" id="iYuan"></span></div>
+  <div class="info-item"><span class="lbl">旬</span><span class="val" id="iXun"></span></div>
+</div>
+
+<div class="main">
+
+  <div class="result-section" id="resultSection">
+
+    <!-- 值符 / 值使 -->
+    <div class="zhifu-bar">
+      <div class="zhifu-card"><div class="sub">值 符 星</div><div class="val" id="zfStar"></div></div>
+      <div class="zhifu-card"><div class="sub">值 使 门</div><div class="val" id="zsStar"></div></div>
+    </div>
+
+    <!-- 九宫格 -->
+    <div class="palace-grid" id="palaceGrid"></div>
+
+    <!-- 图例 -->
+    <div class="legend">
+      <div class="legend-card">
+        <h4>九 星 吉 凶</h4>
+        <div class="leg-row">
+          <span class="star-心">天心</span><span class="star-禽">天禽</span>
+          <span class="star-任">天任</span><span class="star-辅">天辅</span>
+          <span class="star-冲">天冲</span>
+          <span style="color:var(--dim)">— 上吉</span>
+        </div>
+        <div class="leg-row">
+          <span class="star-蓬">天蓬</span><span class="star-芮">天芮</span>
+          <span class="star-柱">天柱</span><span class="star-英">天英</span>
+          <span style="color:var(--dim)">— 凶星</span>
+        </div>
+      </div>
+      <div class="legend-card">
+        <h4>八 门 吉 凶</h4>
+        <div class="leg-row">
+          <span class="door-开">开门</span><span class="door-休">休门</span>
+          <span class="door-生">生门</span>
+          <span style="color:var(--dim)">— 吉</span>
+        </div>
+        <div class="leg-row">
+          <span class="door-伤">伤门</span><span class="door-杜">杜门</span>
+          <span class="door-景">景门</span><span class="door-死">死门</span>
+          <span class="door-惊">惊门</span>
+          <span style="color:var(--dim)">— 凶</span>
+        </div>
+      </div>
+      <div class="legend-card">
+        <h4>宫 格 布 局</h4>
+        <div class="leg-row" style="font-size:.7rem; color:var(--dim); line-height:2">
+          左上：八神 &nbsp; 右上：九星 / 天干<br>
+          中行：八门<br>
+          下行：地盘天干（六仪三奇）
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /result-section -->
+</div>
+
+<script>
+/* =========================================================
+   宫位元数据 & 网格排列
+   ========================================================= */
+const GONG_META = {
+  1:{ name:'坎', dir:'北',   bg:'#0e1520' },
+  2:{ name:'坤', dir:'西南', bg:'#1a1410' },
+  3:{ name:'震', dir:'东',   bg:'#0e1810' },
+  4:{ name:'巽', dir:'东南', bg:'#0e1814' },
+  5:{ name:'中', dir:'中',   bg:'#181818' },
+  6:{ name:'乾', dir:'西北', bg:'#14101c' },
+  7:{ name:'兑', dir:'西',   bg:'#1a1018' },
+  8:{ name:'艮', dir:'东北', bg:'#181414' },
+  9:{ name:'离', dir:'南',   bg:'#201010' }
+};
+
+// 九宫格顺序（行优先，洛书方位）：
+// 4巽  9离  2坤
+// 3震  5中  7兑
+// 8艮  1坎  6乾
+const GRID_ORDER = [4, 9, 2, 3, 5, 7, 8, 1, 6];
+
+/* =========================================================
+   Web Worker — 后台加载库 + 计算
+   ========================================================= */
+const worker = new Worker('./qmdj_worker.js');
+let workerReady = false;
+let pendingQuery = null;
+
+worker.onmessage = function(e) {
+  const msg = e.data;
+
+  if (msg.ready) {
+    workerReady = true;
+    setStatus('ready', '万年历库已就绪，可以排盘');
+    document.getElementById('btnPai').disabled = false;
+    document.getElementById('btnNow').disabled = false;
+    if (pendingQuery) { pendingQuery(); pendingQuery = null; }
+    return;
+  }
+
+  setStatus('ready', '万年历库已就绪，可以排盘');
+  document.getElementById('btnPai').disabled = false;
+  document.getElementById('btnNow').disabled = false;
+
+  if (!msg.ok) {
+    setStatus('error', '排盘错误：' + msg.error);
+    return;
+  }
+  render(msg.data);
+};
+
+worker.onerror = function(e) {
+  setStatus('error', '后台线程错误：' + e.message);
+};
+
+function setStatus(cls, text) {
+  const bar = document.getElementById('statusBar');
+  bar.className = 'status-bar ' + cls;
+  bar.textContent = text;
+}
+
+/* =========================================================
+   排盘入口
+   ========================================================= */
+function doQuery() {
+  const y  = +document.getElementById('Y').value;
+  const mo = +document.getElementById('M').value;
+  const d  = +document.getElementById('D').value;
+  const h  = +document.getElementById('H').value;
+  const mi = +document.getElementById('MI').value;
+
+  if (!workerReady) {
+    pendingQuery = doQuery;
+    setStatus('busy', '库加载中，排盘将在就绪后自动执行…');
+    return;
+  }
+
+  setStatus('busy', '排盘计算中…');
+  document.getElementById('btnPai').disabled = true;
+  worker.postMessage({ y, mo, d, h, mi });
+}
+
+function setNow() {
+  const n = new Date();
+  document.getElementById('Y').value  = n.getFullYear();
+  document.getElementById('M').value  = n.getMonth() + 1;
+  document.getElementById('D').value  = n.getDate();
+  document.getElementById('H').value  = n.getHours();
+  document.getElementById('MI').value = n.getMinutes();
+  doQuery();
+}
+
+function sd(y, mo, d, h, mi) {
+  document.getElementById('Y').value  = y;
+  document.getElementById('M').value  = mo;
+  document.getElementById('D').value  = d;
+  document.getElementById('H').value  = h;
+  document.getElementById('MI').value = mi;
+  doQuery();
+}
+
+/* =========================================================
+   渲染结果
+   ========================================================= */
+function render(data) {
+  const { base, zhiFu, zhiShi, diPan, tianPan, menPan, shenPan } = data;
+
+  // 信息条
+  document.getElementById('iYear').textContent  = base.yearGZ;
+  document.getElementById('iMonth').textContent = base.monthGZ;
+  document.getElementById('iDay').textContent   = base.dayGZ;
+  document.getElementById('iHour').textContent  = base.shiGZ;
+  document.getElementById('iJq').textContent    = base.jq;
+  document.getElementById('iJu').textContent    = base.ju;
+  document.getElementById('iYuan').textContent  = base.yuan;
+  document.getElementById('iXun').textContent   = base.xun;
+  document.getElementById('infoBar').style.display = 'flex';
+
+  // 值符 / 值使
+  document.getElementById('zfStar').textContent = zhiFu;
+  document.getElementById('zsStar').textContent = zhiShi;
+
+  // 九宫格
+  const grid = document.getElementById('palaceGrid');
+  grid.innerHTML = '';
+
+  GRID_ORDER.forEach(gong => {
+    const cell = document.createElement('div');
+    const meta = GONG_META[gong];
+    cell.style.background = meta.bg;
+
+    if (gong === 5) {
+      cell.className = 'cell center';
+      cell.innerHTML = `
+        <div class="center-title">${meta.name} &nbsp;${meta.dir}</div>
+        <div class="center-di">${diPan[5] || '—'}</div>
+        <div class="center-dir">中 宫</div>`;
+    } else {
+      cell.className = 'cell';
+      const tp    = tianPan[gong] || { star:'', gan:'' };
+      const door  = menPan[gong]  || '';
+      const shen  = shenPan[gong] || '';
+      const diGan = diPan[gong]   || '';
+
+      const starKey = (tp.star || '').replace('天','').replace('/天禽','')[0] || '';
+      const doorKey = door[0] || '';
+      const shenCls = 'shen-' + shen;
+
+      cell.innerHTML = `
+        <div class="cell-top">
+          <span class="shen ${shenCls}">${shen}</span>
+          <div class="star-block">
+            <div class="star-name star-${starKey}">${tp.star}</div>
+            <div class="tian-gan">${tp.gan}</div>
+          </div>
+        </div>
+        <div class="door door-${doorKey}">${door}</div>
+        <div class="cell-divider"></div>
+        <div class="cell-bottom">
+          <span class="di-gan">${diGan}</span>
+          <div class="gong-label">
+            <span class="num">${gong}</span>${meta.name}<br>${meta.dir}
+          </div>
+        </div>`;
+    }
+    grid.appendChild(cell);
+  });
+
+  document.getElementById('resultSection').classList.add('show');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Enter') doQuery(); });
+</script>
+</body>
+</html>
