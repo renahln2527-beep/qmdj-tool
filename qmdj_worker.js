@@ -44,6 +44,35 @@ const YANG_JQ = new Set([
   '春分','清明','谷雨','立夏','小满','芒种'
 ]);
 
+// === 新增：四害判定字典 ===
+const KONG_WANG_MAP = {
+  '甲子': [6], // 戌亥在乾6
+  '甲戌': [2, 7], // 申酉在坤2、兑7
+  '甲申': [9, 2], // 午未在离9、坤2
+  '甲午': [4], // 辰巳在巽4
+  '甲辰': [8, 3], // 寅卯在艮8、震3
+  '甲寅': [1, 8]  // 子丑在坎1、艮8
+};
+
+const MEN_PO = {
+  '伤门': [2, 8], '杜门': [2, 8], // 木克土
+  '景门': [6, 7], // 火克金
+  '死门': [1], '生门': [1], // 土克水
+  '开门': [3, 4], '惊门': [3, 4], // 金克木
+  '休门': [9] // 水克火
+};
+
+const JI_XING = {
+  '戊': 3, '己': 2, '庚': 8, '辛': 9, '壬': 4, '癸': 4
+};
+
+const RU_MU = {
+  '丙': 6, '戊': 6, '乙': 6,
+  '丁': 8, '己': 8, '庚': 8,
+  '辛': 4, '壬': 4, '癸': 2 
+};
+// =========================
+
 function step9(gong, step, isYang) {
   let g = gong;
   for (let i = 0; i < step; i++) {
@@ -132,6 +161,36 @@ function paipan(y, mo, d, h, mi) {
     shenPan[g] = SHEN_RING[i];
   }
 
+  // === 新增：计算四害 ===
+  const siHai = {};
+  for (let i = 1; i <= 9; i++) siHai[i] = [];
+
+  // 1. 算空亡（按时柱旬空）
+  const xunName = '甲' + JIA_ZI[shiXunIdx][1];
+  const kwGongs = KONG_WANG_MAP[xunName] || [];
+  kwGongs.forEach(g => siHai[g].push('空'));
+
+  for (let g = 1; g <= 9; g++) {
+    if (g === 5) continue; // 中五宫不计
+
+    // 2. 算门迫
+    const door = menPan[g];
+    if (MEN_PO[door] && MEN_PO[door].includes(g)) {
+      siHai[g].push('迫');
+    }
+
+    // 3. 算击刑与入墓
+    const tGan = tianPan[g]?.gan;
+    if (tGan) {
+      const gans = tGan.split('/'); // 处理天禽星带双干的情况
+      gans.forEach(gan => {
+        if (JI_XING[gan] === g && !siHai[g].includes('刑')) siHai[g].push('刑');
+        if (RU_MU[gan] === g && !siHai[g].includes('墓')) siHai[g].push('墓');
+      });
+    }
+  }
+  // =========================
+
   return {
     base: {
       yearGZ:  bazi.getYear(),
@@ -145,7 +204,7 @@ function paipan(y, mo, d, h, mi) {
     },
     zhiFu: zhiFuStar,
     zhiShi: zhiShiMen,
-    diPan, tianPan, menPan, shenPan
+    diPan, tianPan, menPan, shenPan, siHai // 将四害数据传给前端
   };
 }
 
@@ -162,3 +221,4 @@ self.onmessage = function(e) {
 
 // 通知主线程：库已加载完毕
 self.postMessage({ ok: true, ready: true });
+
