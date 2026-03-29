@@ -210,6 +210,15 @@ header p {
   align-items: flex-end;
   margin-top: auto;
 }
+
+/* 左侧地盘天干+四害标签包裹 */
+.bottom-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+}
+
 .di-gan { font-size: 1.05rem; font-weight: 700; color: var(--white); }
 .gong-label {
   font-size: .58rem;
@@ -218,6 +227,24 @@ header p {
   line-height: 1.5;
 }
 .gong-label .num { font-size: .82rem; color: var(--gold); display: block; }
+
+/* === 新增：四害标签样式 === */
+.sihai-tags {
+  display: flex;
+  gap: 3px;
+  margin-bottom: 2px;
+}
+.sh-tag {
+  font-size: 0.55rem;
+  padding: 1px 3px;
+  border-radius: 2px;
+  color: var(--white);
+  line-height: 1.2;
+}
+.sh-空 { background: transparent; border: 1px solid var(--red); color: var(--red); }
+.sh-迫 { background: #b87040; border: 1px solid #b87040; }
+.sh-刑 { background: var(--red); border: 1px solid var(--red); }
+.sh-墓 { background: #555566; border: 1px solid #555566; }
 
 /* 中宫 */
 .center-title { font-size: .72rem; color: var(--dim); letter-spacing: .2em; margin-bottom: .4rem; }
@@ -345,7 +372,6 @@ header p {
 
 <div class="status-bar" id="statusBar">正在后台加载万年历库，请稍候…</div>
 
-<!-- 基本信息条 -->
 <div class="info-bar" id="infoBar" style="display:none">
   <div class="info-item"><span class="lbl">年柱</span><span class="val gold" id="iYear"></span></div>
   <div class="info-item"><span class="lbl">月柱</span><span class="val gold" id="iMonth"></span></div>
@@ -361,16 +387,13 @@ header p {
 
   <div class="result-section" id="resultSection">
 
-    <!-- 值符 / 值使 -->
     <div class="zhifu-bar">
       <div class="zhifu-card"><div class="sub">值 符 星</div><div class="val" id="zfStar"></div></div>
       <div class="zhifu-card"><div class="sub">值 使 门</div><div class="val" id="zsStar"></div></div>
     </div>
 
-    <!-- 九宫格 -->
     <div class="palace-grid" id="palaceGrid"></div>
 
-    <!-- 图例 -->
     <div class="legend">
       <div class="legend-card">
         <h4>九 星 吉 凶</h4>
@@ -400,6 +423,17 @@ header p {
           <span style="color:var(--dim)">— 凶</span>
         </div>
       </div>
+      
+      <div class="legend-card">
+        <h4>四 害 提 示</h4>
+        <div class="leg-row" style="align-items: center; gap: 8px;">
+          <span class="sh-tag sh-空">空</span><span style="color:var(--dim); font-size: 0.65rem;">空亡</span>
+          <span class="sh-tag sh-迫">迫</span><span style="color:var(--dim); font-size: 0.65rem;">门迫</span>
+          <span class="sh-tag sh-刑">刑</span><span style="color:var(--dim); font-size: 0.65rem;">击刑</span>
+          <span class="sh-tag sh-墓">墓</span><span style="color:var(--dim); font-size: 0.65rem;">入墓</span>
+        </div>
+      </div>
+      
       <div class="legend-card">
         <h4>宫 格 布 局</h4>
         <div class="leg-row" style="font-size:.7rem; color:var(--dim); line-height:2">
@@ -410,8 +444,7 @@ header p {
       </div>
     </div>
 
-  </div><!-- /result-section -->
-</div>
+  </div></div>
 
 <script>
 /* =========================================================
@@ -519,7 +552,8 @@ function sd(y, mo, d, h, mi) {
    渲染结果
    ========================================================= */
 function render(data) {
-  const { base, zhiFu, zhiShi, diPan, tianPan, menPan, shenPan } = data;
+  // === 提取后台新增的 siHai 数据 ===
+  const { base, zhiFu, zhiShi, diPan, tianPan, menPan, shenPan, siHai } = data;
 
   // 信息条
   document.getElementById('iYear').textContent  = base.yearGZ;
@@ -562,6 +596,14 @@ function render(data) {
       const doorKey = door[0] || '';
       const shenCls = 'shen-' + shen;
 
+      // === 新增：解析渲染四害标签 HTML ===
+      const shArray = (siHai && siHai[gong]) ? siHai[gong] : [];
+      let shHtml = '';
+      if (shArray.length > 0) {
+        const tags = shArray.map(sh => `<span class="sh-tag sh-${sh}">${sh}</span>`).join('');
+        shHtml = `<div class="sihai-tags">${tags}</div>`;
+      }
+
       cell.innerHTML = `
         <div class="cell-top">
           <span class="shen ${shenCls}">${shen}</span>
@@ -573,7 +615,10 @@ function render(data) {
         <div class="door door-${doorKey}">${door}</div>
         <div class="cell-divider"></div>
         <div class="cell-bottom">
-          <span class="di-gan">${diGan}</span>
+          <div class="bottom-left">
+            ${shHtml}
+            <span class="di-gan">${diGan}</span>
+          </div>
           <div class="gong-label">
             <span class="num">${gong}</span>${meta.name}<br>${meta.dir}
           </div>
